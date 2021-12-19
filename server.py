@@ -5,6 +5,7 @@ import eventlet
 import eventlet.wsgi
 from model import transcript
 
+highlighted_user_list=[]
 
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -27,6 +28,20 @@ def get_transcript(data):
     print(data)
     transcript_obj=transcript.Transcript()
     transcript_obj.push_transcript_chunks(data)
+
+@socketio.event
+def highlight(data):
+    print(data)
+    highlighted_user_list.push(data['name'])
+
+@socketio.event
+def get_highlight_status():
+    emit('highlight_status',highlighted_user_list)
+
+@socketio.event
+def remove_highlighted_user(data):
+    highlight_user_list.remove(data['name'])
+    emit('highlight_status',highlighted_user_list)
 
 if __name__ == '__main__':
     # app.run(port=5000)
