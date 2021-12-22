@@ -12,3 +12,4 @@ MONGO_CONFIG = {
     'password':'demo1234',
     'database': 'usersdata'    
 }
+BASE_DIR = os.path.join( os.getcwd())
