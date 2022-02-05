@@ -1,6 +1,7 @@
+from numpy import delete
 from flask import Flask, send_file, render_template,jsonify, request, send_from_directory
 from flask_socketio import SocketIO, emit
-
+from flask_cors import CORS, cross_origin
 import eventlet
 import eventlet.wsgi
 from model import transcript
@@ -8,8 +9,12 @@ from configs import settings
 import os
 
 highlighted_user_list=[]
+room_dict={}
+
 
 app = Flask(__name__)
+cors = CORS(app)
+
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 #app.config['SECRET_KEY'] = 'secret!'
@@ -18,17 +23,19 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 
 
-@app.route('/api/<meetingId>/<user>',methods=['GET'])
+@app.route('/api/<meetingId>/<user>',methods=['POST'])
+@cross_origin()
 def index(meetingId,user):
     transcript_obj=transcript.Transcript()
     transcript_obj.get_transcript(request.view_args)
     print(request.view_args)
     
-    return send_file(os.path.join(settings.BASE_DIR, 'temp')+'/'+request.view_args['meetingId']+'.pdf', as_attachment=True)
+    return send_file(os.path.join(settings.BASE_DIR, 'temp')+'/'+request.view_args['meetingId']+'.pdf', as_attachment=True, mimetype='application/pdf')
 
 @socketio.event
 def get_transcript(data):
     print(data)
+    data['highlightedUsers'] = highlighted_user_list
     transcript_obj=transcript.Transcript()
     transcript_obj.push_transcript_chunks(data)
 
@@ -40,7 +47,9 @@ def highlight(data):
     except ValueError:
         highlighted_user_list.append(data['name'])
         
-    emit('highlight_status',highlighted_user_list)
+    #emit('highlight_status',highlighted_user_list)
+    print("****************")
+    print(highlighted_user_list)
 
 @socketio.event
 def get_highlight_status():
@@ -48,8 +57,40 @@ def get_highlight_status():
 
 @socketio.event
 def remove_highlighted_user(data):
-    highlighted_user_list.remove(data['name'])
-    emit('highlight_status',highlighted_user_list)
+    try:
+        highlighted_user_list.remove(data['name'])
+    except ValueError:
+        pass
+    emit('highlight_status',highlighted_user_list, broadcast=True)
+
+@socketio.event
+def join(data):
+    # username = data['name']
+    # room = data['room']
+    # join_room(room)
+    # print(room)
+    # send(username + ' has entered the room.', to=room)
+    print("***enter room***")
+    print(data)
+    try:
+     room_dict[data['meetingId']].append(data['name'])
+    except:
+        room_dict[data['meetingId']]=[]
+        room_dict[data['meetingId']].append(data['name'])
+    print(room_dict[data['meetingId']])
+    emit('numberOfClients',room_dict[data['meetingId']],broadcast=True)
+
+@socketio.event
+def leave(data):
+    room_dict[data['meetingId']].remove(data['name'])
+    print("***left room***")
+    print(data)
+    print(room_dict[data['meetingId']])
+    if(len(room_dict[data['meetingId']]) == 0):
+        del room_dict[data['meetingId']]
+    emit('numberOfClients',room_dict[data['meetingId']],broadcast=True)
+
+    
 
 if __name__ == '__main__':
     # app.run(port=5000)

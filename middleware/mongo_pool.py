@@ -7,7 +7,7 @@ class MongoDBPool():
         self._user = dbconfig['user']        
         self._password = dbconfig['password']
         self._database = dbconfig['database']
-        self.mongo_uri = "mongodb://"+self._user+":"+self._password+"@"+self._host+":"+str(self._port)+"/"+self._database
+        self.mongo_uri = "mongodb+srv://"+self._user+":"+self._password+"@"+self._host+"/"+self._database
 
     def create_client(self):
         self.client = MongoClient(self.mongo_uri)
