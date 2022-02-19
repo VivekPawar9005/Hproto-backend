@@ -4,3 +4,4 @@ eventlet
 pymongo
 dominate
 pdfkit
+flask_cors
