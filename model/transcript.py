@@ -6,6 +6,8 @@ import requests
 import pdfkit
 import os
 from configs import settings
+import threading as th
+
 
 
 from server import highlight
@@ -17,47 +19,13 @@ class Transcript():
         if (os.path.isdir(os.path.join(settings.BASE_DIR, 'temp')) ) == False:
             os.mkdir(os.path.join(settings.BASE_DIR, 'temp'))
 
-    # def stitch(self,data):
-    #     mainIndex = []
-    #     i=0
-    #     print(len(data))
-    #     while i< len(data):
-    #         temp=[]
-    #         for j in range(i, len(data)):
-
-    #             try:
-    #                 if (data[j]['name'] == data[j+1]['name']):
-    #                     temp.append(j)
-    #                 else:
-    #                     temp.append(j)
-    #                     print(temp)
-    #                     mainIndex.append(temp)
-    #                     i=j+1
-    #                     break
-    #             except:
-    #                 if len(data) != 1 and len(temp) != 0:
-    #                     # print(temp)
-    #                     # print(data[temp[len(temp)-1]]['name'])
-    #                     # print(data[temp[len(temp)-1]+1]['name'])
-    #                     if data[temp[len(temp)-1]]['name'] == data[temp[len(temp)-1]+1]['name']:
-    #                         temp.append(temp[len(temp)-1]+1)
-    #                         mainIndex.append(temp)
-    #                     else:
-    #                         mainIndex.append(temp)
-    #                         mainIndex.append([temp[len(temp)-1]+1])
-    #                     i=len(data)
-    #                 else:
-    #                     mainIndex.append([i])
-    #                     i=len(data)
-    #     return mainIndex
-
     def stitch(self,data):
         mainIndex = []
         i=0
         print(len(data))
-        while i< len(data)-1:
+        while i< len(data):
             temp=[]
-            for j in range(i, len(data)-1):
+            for j in range(i, len(data)):
 
                 try:
                     if (data[j]['name'] == data[j+1]['name']):
@@ -69,10 +37,46 @@ class Transcript():
                         i=j+1
                         break
                 except:
-                    print("execption!")
+                    if len(data) != 1 and len(temp) != 0:
+                        # print(temp)
+                        # print(data[temp[len(temp)-1]]['name'])
+                        # print(data[temp[len(temp)-1]+1]['name'])
+                        if data[temp[len(temp)-1]]['name'] == data[temp[len(temp)-1]+1]['name']:
+                            temp.append(temp[len(temp)-1]+1)
+                            mainIndex.append(temp)
+                        else:
+                            mainIndex.append(temp)
+                            mainIndex.append([temp[len(temp)-1]+1])
+                        i=len(data)
+                    else:
+                        mainIndex.append([i])
+                        i=len(data)
         return mainIndex
 
+    # def stitch(self,data):
+    #     mainIndex = []
+    #     i=0
+    #     print(len(data))
+    #     while i< len(data)-1:
+    #         temp=[]
+    #         for j in range(i, len(data)-1):
 
+    #             try:
+    #                 if (data[j]['name'] == data[j+1]['name']):
+    #                     temp.append(j)
+    #                 else:
+    #                     temp.append(j)
+    #                     print(temp)
+    #                     mainIndex.append(temp)
+    #                     i=j+1
+    #                     break
+    #             except:
+    #                 print("execption!")
+    #     return mainIndex
+
+
+    def remove_file(self,name):
+        os.remove(os.path.join(settings.BASE_DIR, 'temp')+'/'+name+'.pdf') 
 
     def get_html(self, data, users):
         doc = dominate.document()
@@ -133,9 +137,13 @@ class Transcript():
         print(res)
         if  res is None or len(res['transcriptArray']) == 0:
             notFound="""<!DOCTYPE html> <html> <head> <title>Dominate</title> </head> <body> <body> <div style="display:flex;flex-direction:row;justify-content:center;"> <h1> TRANSCRIPT DATA NOT FOUND </h1> </div> </body> </body> </html>"""
-            pdfkit.from_string(notFound, os.path.join(settings.BASE_DIR, 'temp')+'/'+data['meetingId']+'.pdf',options=pdfkit_options)
+            pdfkit.from_string(notFound, os.path.join(settings.BASE_DIR, 'temp')+'/'+data['meetingId']+'_'+data['user']+'.pdf',options=pdfkit_options)
+            # task = th.Timer(60,self.remove_file(data['meetingId']+'_'+data['user']))
+            # task.start()
         else:
-            pdfkit.from_string(self.get_html(res,data), os.path.join(settings.BASE_DIR, 'temp')+'/'+data['meetingId']+'.pdf',options=pdfkit_options)
+            pdfkit.from_string(self.get_html(res,data), os.path.join(settings.BASE_DIR, 'temp')+'/'+data['meetingId']+'_'+data['user']+'.pdf',options=pdfkit_options)
+            # task = th.Timer(60,self.remove_file(data['meetingId']+'_'+data['user']))
+            # task.start()
 
         return 'pdf generated'
 
@@ -152,4 +160,4 @@ class Transcript():
 
 
      
-        return 'Successfully chunks is PUSHED!'
+        return 'Successfully chunks are PUSHED!'
